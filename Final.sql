@@ -257,10 +257,16 @@ BEGIN
     IF EXISTS(SELECT 1 FROM work_assignments 
 				WHERE p_assignment_id = assignment_id 
                 AND completed_date IS NOT NULL) THEN
-    SET p_message = 'Công việc đã hoàn thành rồi';
-    ROLLBACK;
+				SET p_message = 'Công việc đã hoàn thành rồi';
+                ROLLBACK;
+	END IF;
+	IF EXISTS(SELECT 1 FROM work_assignments 
+				WHERE p_assignment_id = assignment_id 
+                AND completed_date IS NULL) THEN
+		UPDATE work_assignments SET completed_date = CURDATE() WHERE p_assignment_id = assignment_id;
+        SET p_message = 'Đã xử lý hoàn thành công việc';
+        COMMIT;
     END IF;
-    COMMIT;
 END//
 DELIMITER ;
 
