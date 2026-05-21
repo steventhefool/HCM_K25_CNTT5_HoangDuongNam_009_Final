@@ -1,5 +1,5 @@
 -- Tạo database để bắt đầu làm bài
-CREATE DATABASE Manage_employee_db;
+CREATE DATABASE IF NOT EXISTS Manage_employee_db;
 USE Manage_employee_db;
 
 
@@ -259,10 +259,7 @@ BEGIN
                 AND completed_date IS NOT NULL) THEN
 				SET p_message = 'Công việc đã hoàn thành rồi';
                 ROLLBACK;
-	END IF;
-	IF EXISTS(SELECT 1 FROM work_assignments 
-				WHERE p_assignment_id = assignment_id 
-                AND completed_date IS NULL) THEN
+	ELSE	
 		UPDATE work_assignments SET completed_date = CURDATE() WHERE p_assignment_id = assignment_id;
         SET p_message = 'Đã xử lý hoàn thành công việc';
         COMMIT;
@@ -272,9 +269,8 @@ DELIMITER ;
 
 CALL sp_complete_assignment_transaction(102, @msg);
 SELECT @msg;
-CALL sp_complete_assignment_transaction(106, @msg);
+CALL sp_complete_assignment_transaction(103, @msg);
 SELECT @msg;
-
 CALL sp_complete_assignment_transaction(107, @msg);
 SELECT @msg;
 
