@@ -108,7 +108,7 @@ CREATE TRIGGER check_date_bf_insert
 BEFORE INSERT ON Work_Assignments
 FOR EACH ROW
 BEGIN 
-	IF (Start_date > Deadline) THEN
+	IF (NEW.Start_date > NEW.Deadline) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ngày bắt đầu phải nhỏ hơn deadline';
     END IF;
 END//
@@ -218,3 +218,59 @@ DELIMITER ;
 DELETE FROM Employees WHERE employee_id = 1;
 
 -- Phan 7: Stored Procedure
+-- Cau 1: Viet sp phan loai budget
+
+DROP PROCEDURE IF EXISTS sp_check_project_budget;
+
+DELIMITER //
+CREATE PROCEDURE sp_check_project_budget (IN p_project_id INT, OUT p_message VARCHAR (50))
+BEGIN
+	-- Tao bien nhan ngan sach
+	DECLARE p_budget int;
+    SELECT budget INTO p_budget FROM projects WHERE p_project_id = project_id;
+    IF (p_budget < 20000000) THEN
+		SET p_message = 'Ngân sách thấp';
+	ELSEIF (p_budget between 20000000 AND 40000000) THEN
+		SET p_message = 'Ngân sách trung bình';
+	ELSEIF (p_budget > 40000000) THEN
+		SET p_message = 'Ngân sách cao';
+    END IF;
+END//
+DELIMITER ;
+
+CALL sp_check_project_budget (2, @msg);
+SELECT @msg;
+
+-- Cau 2: Viet sp xu ly cong viec bang transaction
+-- B1: bdau gdich
+-- B2: kiem tra cong viec hoan thanh chua
+-- B3: cap nhat completed_date = curdate()
+-- B4: Neu tat ca cong viec cua du an da hoan thanh -> cap nhat project_status = 'Done'
+-- B5: Commit neu thanh cong, rollback neu co loi
+
+DROP PROCEDURE IF EXISTS sp_complete_assignment_transaction;
+
+DELIMITER //
+CREATE PROCEDURE sp_complete_assignment_transaction (p_assignment_id INT, OUT p_message VARCHAR (50))
+BEGIN
+	START TRANSACTION;
+    IF EXISTS(SELECT 1 FROM work_assignments 
+				WHERE p_assignment_id = assignment_id 
+                AND completed_date IS NOT NULL) THEN
+    SET p_message = 'Công việc đã hoàn thành rồi';
+    ROLLBACK;
+    END IF;
+    COMMIT;
+END//
+DELIMITER ;
+
+CALL sp_complete_assignment_transaction(102, @msg);
+SELECT @msg;
+CALL sp_complete_assignment_transaction(106, @msg);
+SELECT @msg;
+
+CALL sp_complete_assignment_transaction(107, @msg);
+SELECT @msg;
+
+
+
